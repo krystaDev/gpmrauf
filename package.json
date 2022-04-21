@@ -1,6 +1,6 @@
 {
   "name": "gpmrauf",
-  "version": "1",
+  "version": "1.0.0",
   "description": "",
   "main": "app/main.js",
   "private": true,

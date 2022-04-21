@@ -3,5 +3,7 @@
   "version": "10.5.1",
   "main": "main.js",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "find": "^0.3.0"
+  }
 }

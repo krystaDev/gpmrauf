@@ -9,6 +9,7 @@ import {dialog} from 'electron';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
+
   constructor(
     private electronService: ElectronService,
     private translate: TranslateService

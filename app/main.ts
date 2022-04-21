@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as url from 'url';
+import * as find from 'find';
 const { ipcMain, dialog, ipcRenderer } = require('electron')
 
 let win: BrowserWindow = null;
@@ -82,7 +83,12 @@ try {
     dialog.showOpenDialog({
       properties: ['openDirectory']
     }).then((t) => {
-      event.reply('selected-directory', t.filePaths[0])
+      console.log(t)
+      find.file(path.toNamespacedPath(t.filePaths[0]), function(files) {
+        event.reply('selected-directory',files )
+      })
+
+
     })
   })
 
