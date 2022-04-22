@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as url from 'url';
 import * as find from 'find';
 const { ipcMain, dialog, ipcRenderer } = require('electron')
+import { utimes } from 'utimes';
+import * as piexif from 'piexifjs';
 
 let win: BrowserWindow = null;
 const args = process.argv.slice(1),
@@ -62,7 +64,37 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+function searchFilesAndSendToFront(selectedPath: string, event: Electron.IpcMainEvent) {
+  find.file(path.toNamespacedPath(selectedPath), function (files) {
+    const getExtension = (path: string): string => {
+      return path.split('.').pop()
+    }
+    event.reply('selected-directory', (files as string[]).map((t) => {
+      const {birthtime, mtime} = fs.statSync(t)
+      if (getExtension(t) === 'json') {
+        return {
+          path: t,
+          ...JSON.parse(fs.readFileSync(t).toString())
+        }
+      }
+      return {
+        ctime: birthtime,
+        mtime,
+        path: t
+      }
+    }))
+  })
+}
+
+function updateFile(file) {
+  utimes(file.file, {
+    btime: file.ctime,
+    mtime: file.ctime
+  })
+}
+
 try {
+  let selectedPath = '';
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
@@ -83,11 +115,31 @@ try {
     dialog.showOpenDialog({
       properties: ['openDirectory']
     }).then((t) => {
-      console.log(t)
-      find.file(path.toNamespacedPath(t.filePaths[0]), function(files) {
-        event.reply('selected-directory',files )
-      })
+      if (!t.canceled) {
+        selectedPath = t.filePaths[0];
+        searchFilesAndSendToFront(selectedPath, event);
+      }
+    })
 
+    ipcMain.on('update-file-time', (event, file) => {
+      try {
+        updateFile(file);
+        searchFilesAndSendToFront(selectedPath, event);
+      } catch (t) {
+        // searchFilesAndSendToFront(selectedPath, event);
+      }
+
+    })
+    ipcMain.on('update-many-file-time', (event, args) => {
+      try {
+        args.files.forEach((file, index) => {
+          updateFile(file);
+          event.reply('update-many-file-time-progress', index + 1)
+        })
+        searchFilesAndSendToFront(selectedPath, event);
+      } catch (t) {
+        // searchFilesAndSendToFront(selectedPath, event);
+      }
 
     })
   })

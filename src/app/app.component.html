@@ -6,10 +6,92 @@
     <div class="d-flex flex-column">
       <div class="row">
         <div class="col">
-          One of two columns
+
+            <ng-container *ngIf="searchedFiles$ | async as files">
+              <div class="list">
+                <div *ngFor="let file of files">{{file.name}}</div>
+              </div>
+              <div class="stats">
+                <div class="d-flex flex-column">
+                  <div class="d-flex flex-row justify-content-between">
+                    <div>
+                      Liczba plików
+                    </div>
+                    <div>
+                      {{files.length}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
         </div>
         <div class="col">
-          One of two columns
+          <ng-container *ngIf="filesToFix$ | async as files">
+            <div class="list">
+              <div *ngFor="let file of files" (click)="fixFile(file)">
+                <div class="d-flex flex-column file-to-fix" [class.is-correct]="file.isCorrect">
+                  <div class=" d-flex flex-row justify-content-between">
+                    <div>
+                      {{file.fileName}}
+                    </div>
+                    <div>
+                      {{file.fileDate | date}}
+                    </div>
+                  </div>
+                  <div class="d-flex flex-row justify-content-between">
+                    <div>
+                      Data zrobienia według google
+                    </div>
+                    <div>
+                      {{file.photoTaken | date}}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="stats">
+              <div class="d-flex flex-column">
+                <div class="d-flex flex-row justify-content-between">
+                  <div>
+                    Liczba plików
+                  </div>
+                  <div>
+                    {{files.length}}
+                  </div>
+                </div>
+                <div class="d-flex flex-row justify-content-between">
+                  <div>
+                    Liczba plików przetworzonych
+                  </div>
+                  <div>
+                    {{processedFiles$ | async}}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" (click)="fixAll(files)">FIX ALL</button>
+
+          </ng-container>
+        </div>
+        <div class="col">
+          <ng-container *ngIf="filesWithoutJsonData$ | async as files">
+            <div class="list">
+              <div *ngFor="let file of files">{{file.path}}</div>
+            </div>
+            <div class="stats">
+              <div class="d-flex flex-column">
+                <div class="d-flex flex-row justify-content-between">
+                  <div>
+                    Liczba plików
+                  </div>
+                  <div>
+                    {{files.length}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
         </div>
       </div>
     </div>

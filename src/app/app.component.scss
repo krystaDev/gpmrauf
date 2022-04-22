@@ -1,3 +1,13 @@
-:host {
-  
+.list {
+  height: 80vh;
+  overflow: auto;
+  .file-to-fix {
+    border: 1px solid red;
+    margin-top: 2px;
+    padding: 5px 15px;
+    &.is-correct {
+      border-color: green;
+    }
+  }
 }
+
