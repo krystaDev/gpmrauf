@@ -8,6 +8,7 @@ interface FilesFromDisk {
   path: string;
   ctime?: Date;
   mtime?: Date;
+  title?: string;
   photoTakenTime?: {
     timestamp: number
   };
@@ -27,6 +28,9 @@ interface FileToFix {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {
+  mediaFiles = [
+    'mp4', 'mov', 'jpg', 'jpeg', 'mkv', 'png', 'raw', 'hevc', 'heif', 'webp', 'heic', 'gif', 'dng'
+  ]
   private processedFiles = new BehaviorSubject(0);
   public processedFiles$ = this.processedFiles.asObservable();
   private searchedFilesSubject = new BehaviorSubject<FilesFromDisk[]>([]);
@@ -42,13 +46,44 @@ export class AppComponent {
 
   public filesToFix$: Observable<FileToFix[]> = this.searchedFilesSubject.asObservable().pipe(
     map((array) => {
-      const mediaFiles = [
-        'mp4', 'mov', 'jpg', 'jpeg', 'mkv', 'png', 'raw', 'hevc', 'heif'
-      ]
-      const jsons = array.filter(t => this.getExtension(t.path) === 'json');
-      const media = array.filter((t) => mediaFiles.includes(this.getExtension(t.path)))
-      return jsons.map(t => {
-        const mediaFile = media.find(y => y.path === t.path.replace('.json', ''));
+
+      const jsons = array.filter(t => this.getExtension(t.path) === 'json').map(t => ({...t}));
+      const media = array.filter((t) => this.mediaFiles.includes(this.getExtension(t.path))).map(t => ({...t}))
+      const withoutJsons = media.filter((media) => {
+        return jsons.filter(j => j.path === media.path + '.json').length === 0
+      });
+      withoutJsons.forEach((wJ) => {
+        if (wJ.path.includes('-edytowane')) {
+          const ext = this.getExtension(wJ.path);
+          const text = wJ.path.substring(wJ.path.indexOf('-edytowane'), wJ.path.indexOf(`.${ext}`))
+          const pathOfOryginalFile =  wJ.path.replace(text, '');
+          const json = {
+            ...jsons.find((t) => t.path === pathOfOryginalFile + '.json')
+          }
+
+          if (!json) {
+            console.log(wJ)
+          } else if (json.path) {
+            json.path = json.path.replace(`.${ext}.json`, `${text}.${ext}.json`)
+            jsons.push(json);
+          }
+        } else if (wJ.path.includes('Screenshot')) {
+
+        }
+      })
+      return jsons.filter((t) => t.photoTakenTime).map(t => {
+        let mediaFile = media.find(y => y.path === t.path.replace('.json', ''));
+        if (!mediaFile) {
+          if (t.path.includes('Screenshot')) {
+            mediaFile = media.find(y => y.path === t.path.replace('.json', '.jpg'))
+          } else {
+
+          }
+        }
+        if (!mediaFile) {
+          console.log('BRAK PLIKU', t)
+          return null
+        }
         const fileDate = new Date(mediaFile.ctime)
         const photoTakenFromJson = new Date(t.photoTakenTime.timestamp * 1000);
         return {
@@ -58,18 +93,19 @@ export class AppComponent {
           photoTaken: photoTakenFromJson.toISOString(),
           isCorrect: isSameDay(photoTakenFromJson, fileDate)
         }
-      })
+      }).filter((t) => t!==null)
     })
   )
   public filesWithoutJsonData$: Observable<FilesFromDisk[]> = this.searchedFilesSubject.asObservable().pipe(
     map((files) => {
-      const mediaFiles = [
-        'mp4', 'mov', 'jpg', 'jpeg', 'mkv', 'png', 'raw', 'hevc', 'heif'
-      ]
-      const jsons = files.filter(t => this.getExtension(t.path) === 'json');
-      const media = files.filter((t) => mediaFiles.includes(this.getExtension(t.path)))
+      const jsondsData = files.filter(t => this.getExtension(t.path) === 'json').map(t => ({...t}));
+      const media = files.filter((t) => this.mediaFiles.includes(this.getExtension(t.path))).map(t => ({...t}))
       return media.filter((media) => {
-        return jsons.filter(j => j.path === media.path + '.json').length === 0
+        if (media.path.includes('-edytowane') || media.path.includes('Screenshot')) {
+          return false
+        }
+
+        return jsondsData.filter(j => j.path === media.path + '.json').length === 0
       })
     })
   )
@@ -108,7 +144,7 @@ export class AppComponent {
   }
 
   private getExtension(path: string): string {
-    return path.split('.').pop()
+    return path.split('.').pop().toLowerCase()
   }
 
   fixFile(file: FileToFix) {
